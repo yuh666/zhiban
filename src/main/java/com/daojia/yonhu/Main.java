@@ -129,51 +129,8 @@ public class Main {
                     }
                     //+10 以防出现负值
                     long delay = next - System.currentTimeMillis() + 10;
-                    long temp = delay;
-                    long day = -1;
-                    long hour = -1;
-                    long minute = -1;
-                    long second = -1;
-                    if (temp >= ONE_DAY) {
-                        day = temp / ONE_DAY;
-                        temp %= ONE_DAY;
-                    }
-                    if (temp >= ONE_HOUR) {
-                        hour = temp / ONE_HOUR;
-                        temp %= ONE_HOUR;
-                    }
-                    if (temp >= ONE_MINUTE) {
-                        minute = temp / ONE_MINUTE;
-                        temp %= ONE_MINUTE;
-                    }
-                    if (temp >= ONE_SECOND) {
-                        second = temp / ONE_SECOND;
-                        temp %= ONE_SECOND;
-                    }
-                    long mm = temp;
 
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("下次提醒将在");
-                    if (day != -1) {
-                        sb.append(day).append("天");
-                    }
-                    if (hour != -1) {
-                        sb.append(hour).append("小时");
-                    }
-                    if (minute != -1) {
-                        sb.append(minute).append("分钟");
-                    }
-                    if (second != -1) {
-                        sb.append(second).append("秒钟");
-                    }
-                    sb.append(mm).append("毫秒");
-                    sb.append("后执行");
-
-                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss EEEE");
-                    String format = simpleDateFormat.format(new Date(next));
-                    sb.append(",").append("也就是").append(format);
-
-                    System.out.println(sb.toString());
+                    System.out.println(calDelayWords(delay));
                     condition.await(delay, TimeUnit.MILLISECONDS);
                 } else {
                     //空的玩个屁
@@ -184,6 +141,52 @@ public class Main {
             lock.unlock();
         }
 
+    }
+
+    private static String calDelayWords(long delay) {
+        long day = -1;
+        long hour = -1;
+        long minute = -1;
+        long second = -1;
+        if (delay >= ONE_DAY) {
+            day = delay / ONE_DAY;
+            delay %= ONE_DAY;
+        }
+        if (delay >= ONE_HOUR) {
+            hour = delay / ONE_HOUR;
+            delay %= ONE_HOUR;
+        }
+        if (delay >= ONE_MINUTE) {
+            minute = delay / ONE_MINUTE;
+            delay %= ONE_MINUTE;
+        }
+        if (delay >= ONE_SECOND) {
+            second = delay / ONE_SECOND;
+            delay %= ONE_SECOND;
+        }
+        long mm = delay;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("下次提醒将在");
+        if (day != -1) {
+            sb.append(day).append("天");
+        }
+        if (hour != -1) {
+            sb.append(hour).append("小时");
+        }
+        if (minute != -1) {
+            sb.append(minute).append("分钟");
+        }
+        if (second != -1) {
+            sb.append(second).append("秒钟");
+        }
+        sb.append(mm).append("毫秒");
+        sb.append("后执行");
+
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss EEEE");
+        String format = simpleDateFormat.format(new Date(delay + System.currentTimeMillis()));
+        sb.append(",").append("也就是").append(format);
+        return sb.toString();
     }
 
     private static void doWork() {
