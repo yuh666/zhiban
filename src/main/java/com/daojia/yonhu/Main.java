@@ -173,7 +173,7 @@ public class Main {
                     sb.append(",").append("也就是").append(format);
 
                     System.out.println(sb.toString());
-                    condition.await(next - System.currentTimeMillis() + 10, TimeUnit.MILLISECONDS);
+                    condition.await(delay, TimeUnit.MILLISECONDS);
                 } else {
                     //空的玩个屁
                     condition.await();
@@ -231,7 +231,7 @@ public class Main {
         int day = calendar.get(Calendar.DAY_OF_WEEK);
 
         if (day != weekday) {
-            calendar.add(Calendar.DAY_OF_MONTH, day < weekday ? weekday : 7 + weekday - day);
+            calendar.add(Calendar.DAY_OF_YEAR, (day < weekday ? weekday : 7 + weekday) - day);
         }
         calendar.set(Calendar.HOUR_OF_DAY, Integer.parseInt(split[0]));
         calendar.set(Calendar.MINUTE, Integer.parseInt(split[1]));
