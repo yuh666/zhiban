@@ -15,6 +15,7 @@ import java.io.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -44,6 +45,10 @@ public class Main {
     private static Map<String, Integer> map = new HashMap<>();
     private static PriorityQueue<Long> priorityQueue = new PriorityQueue<>();
     private static final Long ONE_WEEK = 7 * 24 * 3600 * 1000L;
+    private static final Long ONE_DAY = 24 * 3600 * 1000L;
+    private static final Long ONE_HOUR = 3600 * 1000L;
+    private static final Long ONE_MINUTE = 60 * 1000L;
+    private static final Long ONE_SECOND = 1000L;
     private static ReentrantLock lock = new ReentrantLock();
     private static Condition condition = lock.newCondition();
 
@@ -59,14 +64,25 @@ public class Main {
     }
 
     public static void main(String[] args) throws ParseException, InterruptedException {
-
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    initTask();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        Thread.sleep(1000);
         main.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 reExecute();
             }
         }, 0, 10, TimeUnit.SECONDS);
-        initTask();
+
     }
 
 
@@ -111,6 +127,52 @@ public class Main {
                         doWork();
                     }
                     //+10 以防出现负值
+                    long delay = next - System.currentTimeMillis() + 10;
+                    long temp = delay;
+                    long day = -1;
+                    long hour = -1;
+                    long minute = -1;
+                    long second = -1;
+                    if (temp >= ONE_DAY) {
+                        day = temp / ONE_DAY;
+                        temp %= ONE_DAY;
+                    }
+                    if (temp >= ONE_HOUR) {
+                        hour = temp / ONE_HOUR;
+                        temp %= ONE_HOUR;
+                    }
+                    if (temp >= ONE_MINUTE) {
+                        minute = temp / ONE_MINUTE;
+                        temp %= ONE_MINUTE;
+                    }
+                    if (temp >= ONE_SECOND) {
+                        second = temp / ONE_SECOND;
+                        temp %= ONE_SECOND;
+                    }
+                    long mm = temp;
+
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("下次提醒将在");
+                    if (day != -1) {
+                        sb.append(day).append("天");
+                    }
+                    if (hour != -1) {
+                        sb.append(hour).append("小时");
+                    }
+                    if (minute != -1) {
+                        sb.append(minute).append("分钟");
+                    }
+                    if (second != -1) {
+                        sb.append(second).append("秒钟");
+                    }
+                    sb.append(mm).append("毫秒");
+                    sb.append("后执行");
+
+                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss EEEE");
+                    String format = simpleDateFormat.format(new Date(next));
+                    sb.append(",").append("也就是").append(format);
+
+                    System.out.println(sb.toString());
                     condition.await(next - System.currentTimeMillis() + 10, TimeUnit.MILLISECONDS);
                 } else {
                     //空的玩个屁
