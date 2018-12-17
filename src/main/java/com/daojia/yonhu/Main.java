@@ -168,6 +168,7 @@ public class Main {
     private static int getWeek(Date curr) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(curr);
+        calendar.setFirstDayOfWeek(Calendar.MONDAY);
         return calendar.get(Calendar.WEEK_OF_YEAR);
     }
 
