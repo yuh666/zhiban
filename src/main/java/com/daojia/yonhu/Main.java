@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
  **/
 public class Main {
 
+    //这一堆存的是每周的第几天
     private static final int SUN = 1;
     private static final int MON = 2;
     private static final int THUE = 3;
