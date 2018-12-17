@@ -100,9 +100,9 @@ public class Main {
     }
 
     private static void initTask() throws InterruptedException {
-        lock.lock();
         try {
             while (true) {
+                lock.lock();
                 if (!priorityQueue.isEmpty()) {
                     Long next = priorityQueue.peek();
                     if (next <= System.currentTimeMillis()) {
