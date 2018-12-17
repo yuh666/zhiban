@@ -18,6 +18,8 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author yuh
@@ -35,13 +37,16 @@ public class Main {
 
     private static String WEBHOOK_URL = "https://oapi.dingtalk.com/robot/send";
 
-
-    private static List<ScheduledExecutorService> executorServices = new ArrayList<>();
     private static ScheduledExecutorService main = Executors.newSingleThreadScheduledExecutor();
     private static List<String> plans = new ArrayList<>();
     private static List<String> tokens = new ArrayList<>();
     private static JSONArray jsa = new JSONArray();
     private static Map<String, Integer> map = new HashMap<>();
+    private static PriorityQueue<Long> priorityQueue = new PriorityQueue<>();
+    private static final Long ONE_WEEK = 7 * 24 * 3600 * 1000L;
+    private static ReentrantLock lock = new ReentrantLock();
+    private static Condition condition = lock.newCondition();
+
 
     static {
         map.put("SUN", SUN);
@@ -53,7 +58,7 @@ public class Main {
         map.put("SAT", SAT);
     }
 
-    public static void main(String[] args) throws ParseException {
+    public static void main(String[] args) throws ParseException, InterruptedException {
 
         main.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -61,11 +66,13 @@ public class Main {
                 reExecute();
             }
         }, 0, 10, TimeUnit.SECONDS);
+        initTask();
     }
 
 
     private static void reExecute() {
         try {
+            lock.lock();
             String all = read();
             JSONObject jb = JSONObject.parseObject(all);
             JSONArray times = jb.getJSONArray("times");
@@ -73,41 +80,48 @@ public class Main {
                 return;
             }
             jsa = times;
-
-            if (!executorServices.isEmpty()) {
-                for (ScheduledExecutorService executorService : executorServices) {
-                    executorService.shutdown();
-                }
-            }
-            executorServices.clear();
+            priorityQueue.clear();
             for (Object obj : times) {
                 String time = (String) obj;
                 String[] split = time.split(",");
                 System.out.println(time);
-                initTask(map.get(split[0]), split[1], Executors.newSingleThreadScheduledExecutor());
+                Date nextWeekday = getNearestWeekday(new Date(), map.get(split[0]), split[1]);
+                long finalTime = nextWeekday.getTime();
+                long l = System.currentTimeMillis();
+                priorityQueue.add(finalTime > l ? finalTime : finalTime + ONE_WEEK);
             }
+            condition.signalAll();
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            lock.unlock();
         }
 
     }
 
-    private static void initTask(int weekday, String clock, ScheduledExecutorService scheduledExecutorService) {
-        Date nextWeekday = getNearestWeekday(new Date(), weekday, clock);
-        long finalTime = nextWeekday.getTime();
-        long delay = finalTime - System.currentTimeMillis();
-        if (delay < 0) {
-            delay += 7 * 24 * 3600 * 1000;
-        }
-        scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                doWork();
+    private static void initTask() throws InterruptedException {
+        lock.lock();
+        try {
+            while (true) {
+                if (!priorityQueue.isEmpty()) {
+                    Long next = priorityQueue.peek();
+                    if (next <= System.currentTimeMillis()) {
+                        priorityQueue.add(priorityQueue.poll() + ONE_WEEK);
+                        next = priorityQueue.peek();
+                        doWork();
+                    }
+                    //+10 以防出现负值
+                    condition.await(next - System.currentTimeMillis() + 10, TimeUnit.MILLISECONDS);
+                } else {
+                    //空的玩个屁
+                    condition.await();
+                }
             }
-        }, delay, 7 * 24 * 3600 * 1000, TimeUnit.MILLISECONDS);
-        executorServices.add(scheduledExecutorService);
-    }
+        } finally {
+            lock.unlock();
+        }
 
+    }
 
     private static void doWork() {
         try {
@@ -140,8 +154,8 @@ public class Main {
                 StringEntity se = new StringEntity(msg, "utf-8");
                 httppost.setEntity(se);
                 HttpResponse response = httpclient.execute(httppost);
-                if (response.getStatusLine().getStatusCode()== HttpStatus.SC_OK){
-                    String result= EntityUtils.toString(response.getEntity(), "utf-8");
+                if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                    String result = EntityUtils.toString(response.getEntity(), "utf-8");
                     System.out.println(result);
                 }
             }
