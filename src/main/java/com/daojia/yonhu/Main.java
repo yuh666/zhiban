@@ -101,6 +101,7 @@ public class Main {
             priorityQueue.clear();
 
             for (String line : lines) {
+                System.out.println(line);
                 String[] timeAndCmd = line.split("#");
                 String time = timeAndCmd[0];
                 String cmd = timeAndCmd[1];
@@ -114,7 +115,7 @@ public class Main {
             }
 
             condition.signalAll();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         } finally {
             lock.unlock();
