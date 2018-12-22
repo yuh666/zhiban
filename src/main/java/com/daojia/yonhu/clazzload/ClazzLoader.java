@@ -4,13 +4,14 @@ import java.io.*;
 
 public class ClazzLoader extends ClassLoader {
 
-//    private static String clazzPath = "/opt/zhiban/clazz/{}.class";
-    private static String clazzPath = "/home/lizx/lizx/kaifa/IdeaProjects-mmall/zhiban/src/test/java/{}.class";
+    private static String clazzPath = "/opt/zhiban/clazz/%s.class";
+//    private static String clazzPath = "/home/lizx/lizx/kaifa/IdeaProjects-mmall/zhiban/src/test/java/{}.class";
 
     @Override
     protected Class<?> findClass(String clazzName) throws ClassNotFoundException {
-        File clazzFile = getClazzFile(clazzName.substring(clazzName.lastIndexOf(".")));
         try {
+            int lastIndexOf = clazzName.lastIndexOf(".");
+            File clazzFile = getClazzFile(clazzName.substring(lastIndexOf > 0 ? lastIndexOf : 0));
             byte[] clazzBytes = getClazzBytes(clazzFile);
             return this.defineClass(clazzName, clazzBytes, 0, clazzBytes.length);
         } catch (Exception e) {
