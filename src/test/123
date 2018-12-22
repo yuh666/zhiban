@@ -1,3 +1,7 @@
+META-INF
+
+MANIFEST.MF
+
 Manifest-Version: 1.0
 Main-Class: com.daojia.yonhu.jar.ZhiBanTask
 

@@ -22,20 +22,6 @@
         </dependency>
     </dependencies>
 
-
-    <distributionManagement>
-        <repository>
-            <id>releases</id>
-            <name>Internal Releases</name>
-            <url>http://maven.daojia-inc.com:8058/nexus/content/repositories/releases</url>
-        </repository>
-        <snapshotRepository>
-            <id>Snapshots</id>
-            <name>Internal Snapshots</name>
-            <url>http://maven.daojia-inc.com:8058/nexus/content/repositories/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
-
     <build>
         <plugins>
             <plugin>

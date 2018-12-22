@@ -1,3 +1,5 @@
+package com.daojia.yonhu.jar;
+
 import com.alibaba.fastjson.JSONObject;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -8,6 +10,7 @@ import org.apache.http.util.EntityUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -21,18 +24,24 @@ public class ZhiBanTask {
     private static String template = "值班信息\n\n今天是: %s\n本周值班同学是: %s";
     private static HttpClient httpclient = HttpClients.createDefault();
 
-    public void run() {
-        String nowDateStr = getNowDateStr();
-        String students = getStudents();
+    public static void main(String[] args) throws Exception {
+        try {
+            String nowDateStr = getNowDateStr();
+            String students = getStudents();
 
-        String msg = String.format(template, nowDateStr, students);
+            String msg = String.format(template, nowDateStr, students);
 
-        send(WEBHOOK_URL, msg);
+             msg = "{\"msgtype\":\"text\",\"text\":{\"content\":\"" + msg + "\"},\"at\":{ \"atMobiles\":\"\",\"isAtAll\":true}}";
+
+            send(WEBHOOK_URL, msg);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    private String getStudents() {
+    private static String getStudents() throws Exception {
         Properties properties = new Properties();
-        properties.load(new FileInputStream(new File(configPath)));
+        properties.load(new FileReader(new File(configPath)));
         String studentsValue = properties.getProperty("students");
         List<String> students = JSONObject.parseArray(studentsValue, String.class);
         int index = getWeek(new Date()) % students.size();
@@ -46,18 +55,18 @@ public class ZhiBanTask {
         return calendar.get(Calendar.WEEK_OF_YEAR);
     }
 
-    private String getNowDateStr() {
+    private static String getNowDateStr() {
         return new SimpleDateFormat("yyyy-MM-dd EEEE").format(new Date());
     }
 
-    private void send(String url, String msg) {
+    private static void send(String url, String msg) throws Exception {
         HttpPost httpPost = assemblyHttpPost(url, msg);
-        HttpResponse response = httpclient.execute(httppost);
+        HttpResponse response = httpclient.execute(httpPost);
         String result = EntityUtils.toString(response.getEntity(), "utf-8");
         System.out.println(result);
     }
 
-    private HttpPost assemblyHttpPost(String url, String msg) {
+    private static HttpPost assemblyHttpPost(String url, String msg) {
         HttpPost httppost = new HttpPost(url);
         httppost.addHeader("Content-Type", "application/json; charset=utf-8");
         httppost.setEntity(new StringEntity(msg, "utf-8"));

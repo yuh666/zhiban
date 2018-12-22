@@ -4,9 +4,10 @@ package com.daojia.yonhu;
 import com.daojia.yonhu.clazzload.ClazzLoader;
 import com.daojia.yonhu.task.Job;
 
-import java.io.*;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -100,36 +101,16 @@ public class Main {
             priorityQueue.clear();
 
             for (String line : lines) {
-                String[] timeAndClassName = line.split(" ");
-                String time = timeAndClassName[0];
-                String className = timeAndClassName[1];
-                Class<?> aClass = null;
-                try {
-                    aClass = Class.forName(className, true, loader);
+                String[] timeAndCmd = line.split("#");
+                String time = timeAndCmd[0];
+                String cmd = timeAndCmd[1];
 
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                    continue;
-                }
-                if (aClass == null) {
-                    continue;
-                }
                 String[] weekAndClock = time.split(",");
                 Date nextWeekday = getNearestWeekday(new Date(), map.get(weekAndClock[0]), weekAndClock[1]);
                 long finalTime = nextWeekday.getTime();
                 long l = System.currentTimeMillis();
                 finalTime = finalTime > l ? finalTime : finalTime + ONE_WEEK;
-                Job job = null;
-                try {
-                    job = new Job(finalTime, aClass.newInstance());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    continue;
-                }
-                if (job == null) {
-                    continue;
-                }
-                priorityQueue.add(job);
+                priorityQueue.add(new Job(finalTime, cmd));
             }
 
             condition.signalAll();
@@ -156,7 +137,7 @@ public class Main {
                             @Override
                             public void run() {
                                 try {
-                                    doWork(poll);
+                                    doWork(poll.getShell());
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
@@ -166,7 +147,7 @@ public class Main {
                     }
                     //+10 以防出现负值
                     long delay = peek.getNext() - System.currentTimeMillis() + 10;
-                    System.out.println(calDelayWords(delay,peek.getObj().getClass().getName()));
+                    System.out.println(calDelayWords(delay, peek.getShell()));
                     condition.await(delay, TimeUnit.MILLISECONDS);
                 } else {
                     //空的玩个屁
@@ -179,13 +160,13 @@ public class Main {
 
     }
 
-    private static void doWork(Object obj) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        Class<?> aClass = obj.getClass();
-        Method run = aClass.getDeclaredMethod("run");
-        run.invoke(obj);
+    private static void doWork(String cmd) throws Exception {
+        Process process = Runtime.getRuntime().exec(cmd);
+        int state = process.waitFor();
+        System.out.println(state);
     }
 
-    private static String calDelayWords(long delay,String className) {
+    private static String calDelayWords(long delay, String className) {
         long temp = delay;
         long day = -1;
         long hour = -1;
@@ -229,7 +210,7 @@ public class Main {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss EEEE");
         String format = simpleDateFormat.format(new Date(temp + System.currentTimeMillis()));
         sb.append(",").append("也就是").append(format);
-        sb.append("\n");
+        sb.append(" ");
         sb.append(className);
         return sb.toString();
     }
@@ -246,7 +227,7 @@ public class Main {
         }
         calendar.set(Calendar.HOUR_OF_DAY, Integer.parseInt(split[0]));
         calendar.set(Calendar.MINUTE, Integer.parseInt(split[1]));
-        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.SECOND, Integer.parseInt(split[2]));
         calendar.set(Calendar.MILLISECOND, 0);
 
         return calendar.getTime();
@@ -255,7 +236,7 @@ public class Main {
 
     //return ["FRI,21:00 com.daojia.yonghu.zhiban.SendMsg",...]
     private static List<String> readLines() throws IOException {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream("/opt/zhiban/cron.config")));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream("/opt/zhiban/config/cron.config")));
         String line = null;
         List<String> list = new ArrayList();
         while ((line = reader.readLine()) != null) {

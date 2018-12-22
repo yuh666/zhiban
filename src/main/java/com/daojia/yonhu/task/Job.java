@@ -7,7 +7,7 @@ package com.daojia.yonhu.task;
 public class Job {
 
     private long next;
-    private Object obj;
+    private String shell;
 
     public long getNext() {
         return next;
@@ -17,17 +17,17 @@ public class Job {
         this.next = next;
     }
 
-    public Object getObj() {
-        return obj;
+    public String getShell() {
+        return shell;
     }
 
-    public void setObj(Object obj) {
-        this.obj = obj;
+    public void setShell(String shell) {
+        this.shell = shell;
     }
 
-    public Job(long next, Object obj) {
+    public Job(long next, String shell) {
         this.next = next;
-        this.obj = obj;
+        this.shell = shell;
     }
 
     public Job() {

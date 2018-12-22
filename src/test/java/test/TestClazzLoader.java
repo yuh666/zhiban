@@ -8,7 +8,7 @@ public class TestClazzLoader {
 
     public static void main(String[] args) throws Exception {
         ClazzLoader clazzLoader = new ClazzLoader();
-        Class<?> clazz = Class.forName("ZhiBanTask", true, clazzLoader);
+        Class<?> clazz = Class.forName("com.daojia.yonhu.jar.ZhiBanTask", true, clazzLoader);
         Object obj = clazz.newInstance();
         Method method = clazz.getDeclaredMethod("run");
         method.invoke(obj);
