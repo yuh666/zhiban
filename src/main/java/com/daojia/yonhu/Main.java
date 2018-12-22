@@ -1,17 +1,12 @@
 package com.daojia.yonhu;
 
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
+import com.daojia.yonhu.clazzload.ClazzLoader;
+import com.daojia.yonhu.task.Job;
 
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -37,14 +32,17 @@ public class Main {
     private static final int FRI = 6;
     private static final int SAT = 7;
 
-    private static String WEBHOOK_URL = "https://oapi.dingtalk.com/robot/send";
 
     private static ScheduledExecutorService main = Executors.newSingleThreadScheduledExecutor();
-    private static List<String> plans = new ArrayList<>();
-    private static List<String> tokens = new ArrayList<>();
-    private static JSONArray jsa = new JSONArray();
+    private static ExecutorService taskPopExecutor = Executors.newSingleThreadExecutor();
+    private static ExecutorService taskExecutor = Executors.newFixedThreadPool(10);
     private static Map<String, Integer> map = new HashMap<>();
-    private static PriorityQueue<Long> priorityQueue = new PriorityQueue<>();
+    private static PriorityQueue<Job> priorityQueue = new PriorityQueue<>(new Comparator<Job>() {
+        @Override
+        public int compare(Job o1, Job o2) {
+            return (int) (o1.getNext() - o2.getNext());
+        }
+    });
     private static final Long ONE_WEEK = 7 * 24 * 3600 * 1000L;
     private static final Long ONE_DAY = 24 * 3600 * 1000L;
     private static final Long ONE_HOUR = 3600 * 1000L;
@@ -52,6 +50,8 @@ public class Main {
     private static final Long ONE_SECOND = 1000L;
     private static ReentrantLock lock = new ReentrantLock();
     private static Condition condition = lock.newCondition();
+    private static List<String> cronList = new ArrayList<>();
+    private static final ClazzLoader loader = new ClazzLoader();
 
 
     static {
@@ -66,8 +66,8 @@ public class Main {
 
     // 123
     public static void main(String[] args) throws ParseException, InterruptedException {
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-        executorService.execute(new Runnable() {
+
+        taskPopExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -91,23 +91,47 @@ public class Main {
     private static void reExecute() {
         try {
             lock.lock();
-            String all = read();
-            JSONObject jb = JSONObject.parseObject(all);
-            JSONArray times = jb.getJSONArray("times");
-            if (jsa.equals(times)) {
+            List<String> lines = readLines();
+            Collections.sort(lines);
+            if (cronList.equals(lines)) {
                 return;
             }
-            jsa = times;
+            cronList = lines;
             priorityQueue.clear();
-            for (Object obj : times) {
-                String time = (String) obj;
-                String[] split = time.split(",");
-                System.out.println(time);
-                Date nextWeekday = getNearestWeekday(new Date(), map.get(split[0]), split[1]);
+
+            for (String line : lines) {
+                String[] timeAndClassName = line.split(" ");
+                String time = timeAndClassName[0];
+                String className = timeAndClassName[1];
+                Class<?> aClass = null;
+                try {
+                    aClass = Class.forName(className, true, loader);
+
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                    continue;
+                }
+                if (aClass == null) {
+                    continue;
+                }
+                String[] weekAndClock = time.split(",");
+                Date nextWeekday = getNearestWeekday(new Date(), map.get(weekAndClock[0]), weekAndClock[1]);
                 long finalTime = nextWeekday.getTime();
                 long l = System.currentTimeMillis();
-                priorityQueue.add(finalTime > l ? finalTime : finalTime + ONE_WEEK);
+                finalTime = finalTime > l ? finalTime : finalTime + ONE_WEEK;
+                Job job = null;
+                try {
+                    job = new Job(finalTime, aClass.newInstance());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    continue;
+                }
+                if (job == null) {
+                    continue;
+                }
+                priorityQueue.add(job);
             }
+
             condition.signalAll();
         } catch (IOException e) {
             e.printStackTrace();
@@ -122,16 +146,27 @@ public class Main {
             while (true) {
                 lock.lock();
                 if (!priorityQueue.isEmpty()) {
-                    Long next = priorityQueue.peek();
-                    if (next <= System.currentTimeMillis()) {
-                        priorityQueue.add(priorityQueue.poll() + ONE_WEEK);
-                        next = priorityQueue.peek();
-                        doWork();
+                    Job peek = priorityQueue.peek();
+                    if (peek.getNext() <= System.currentTimeMillis()) {
+                        Job poll = priorityQueue.poll();
+                        poll.setNext(poll.getNext() + ONE_WEEK);
+                        priorityQueue.add(poll);
+                        peek = priorityQueue.peek();
+                        taskExecutor.execute(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    doWork(poll);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+
                     }
                     //+10 以防出现负值
-                    long delay = next - System.currentTimeMillis() + 10;
-
-                    System.out.println(calDelayWords(delay));
+                    long delay = peek.getNext() - System.currentTimeMillis() + 10;
+                    System.out.println(calDelayWords(delay,peek.getObj().getClass().getName()));
                     condition.await(delay, TimeUnit.MILLISECONDS);
                 } else {
                     //空的玩个屁
@@ -144,7 +179,13 @@ public class Main {
 
     }
 
-    private static String calDelayWords(long delay) {
+    private static void doWork(Object obj) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        Class<?> aClass = obj.getClass();
+        Method run = aClass.getDeclaredMethod("run");
+        run.invoke(obj);
+    }
+
+    private static String calDelayWords(long delay,String className) {
         long temp = delay;
         long day = -1;
         long hour = -1;
@@ -169,7 +210,7 @@ public class Main {
         long mm = delay;
 
         StringBuilder sb = new StringBuilder();
-        sb.append("下次提醒将在");
+        sb.append("下次调度将在");
         if (day != -1) {
             sb.append(day).append("天");
         }
@@ -188,47 +229,11 @@ public class Main {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss EEEE");
         String format = simpleDateFormat.format(new Date(temp + System.currentTimeMillis()));
         sb.append(",").append("也就是").append(format);
+        sb.append("\n");
+        sb.append(className);
         return sb.toString();
     }
 
-    private static void doWork() {
-        try {
-            refresh();
-            sendMsg();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void sendMsg() throws IOException {
-
-        Date date = new Date();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd EEEE");
-        int week = getWeek(date);
-        StringBuilder sb = new StringBuilder();
-        sb.append("值班信息");
-        sb.append("\n\n");
-        sb.append("今天是: ").append(sdf.format(date));
-        sb.append("\n");
-        sb.append("本周值班同学是: ").append(plans.get(week % plans.size()));
-
-
-        HttpClient httpclient = HttpClients.createDefault();
-        for (String token : tokens) {
-            for (int i = 0; i < 2; i++) {
-                HttpPost httppost = new HttpPost(WEBHOOK_URL + "?access_token=" + token);
-                httppost.addHeader("Content-Type", "application/json; charset=utf-8");
-                String msg = "{\"msgtype\":\"text\",\"text\":{\"content\":\"" + sb.toString() + "\"},\"at\":{ \"atMobiles\":\"\",\"isAtAll\":true}}";
-                StringEntity se = new StringEntity(msg, "utf-8");
-                httppost.setEntity(se);
-                HttpResponse response = httpclient.execute(httppost);
-                if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                    String result = EntityUtils.toString(response.getEntity(), "utf-8");
-                    System.out.println(result);
-                }
-            }
-        }
-    }
 
     private static Date getNearestWeekday(Date curr, int weekday, String clock) {
         String[] split = clock.split(":");
@@ -247,33 +252,17 @@ public class Main {
         return calendar.getTime();
     }
 
-    private static int getWeek(Date curr) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(curr);
-        calendar.setFirstDayOfWeek(Calendar.MONDAY);
-        return calendar.get(Calendar.WEEK_OF_YEAR);
-    }
 
-    private static void refresh() throws IOException {
-        String all = read();
-        JSONObject jb = JSONObject.parseObject(all);
-        JSONArray plansJA = jb.getJSONArray("plans");
-        for (Object plan : plansJA) {
-            plans.add((String) plan);
+    //return ["FRI,21:00 com.daojia.yonghu.zhiban.SendMsg",...]
+    private static List<String> readLines() throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream("/opt/zhiban/cron.config")));
+        String line = null;
+        List<String> list = new ArrayList();
+        while ((line = reader.readLine()) != null) {
+            list.add(line);
         }
-        JSONArray tokensJA = jb.getJSONArray("tokens");
-        for (Object token : tokensJA) {
-            tokens.add((String) token);
-        }
-
-    }
-
-    private static String read() throws IOException {
-        InputStream stream = new FileInputStream("/home/lizx/lizx/kaifa/IdeaProjects-mmall/zhiban/config.json");
-        byte[] bytes = new byte[1024 * 100];
-        int read = stream.read(bytes);
-        stream.close();
-        return new String(bytes, 0, read);
+        reader.close();
+        return list;
     }
 
 }
