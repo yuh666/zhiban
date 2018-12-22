@@ -5,7 +5,7 @@ import java.io.*;
 public class ClazzLoader extends ClassLoader {
 
 //    private static String clazzPath = "/opt/zhiban/clazz/{}.class";
-    private static String clazzPath = "/home/lizx/lizx/kaifa/IdeaProjects-mmall/zhiban/src/test/java/test/{}.class";
+    private static String clazzPath = "/home/lizx/lizx/kaifa/IdeaProjects-mmall/zhiban/src/test/java/{}.class";
 
     @Override
     protected Class<?> findClass(String clazzName) throws ClassNotFoundException {
