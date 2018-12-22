@@ -145,6 +145,7 @@ public class Main {
     }
 
     private static String calDelayWords(long delay) {
+        long temp = delay;
         long day = -1;
         long hour = -1;
         long minute = -1;
@@ -185,7 +186,7 @@ public class Main {
         sb.append("后执行");
 
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss EEEE");
-        String format = simpleDateFormat.format(new Date(delay + System.currentTimeMillis()));
+        String format = simpleDateFormat.format(new Date(temp + System.currentTimeMillis()));
         sb.append(",").append("也就是").append(format);
         return sb.toString();
     }
@@ -268,7 +269,7 @@ public class Main {
     }
 
     private static String read() throws IOException {
-        InputStream stream = new FileInputStream("/opt/config/config.json");
+        InputStream stream = new FileInputStream("/home/lizx/lizx/kaifa/IdeaProjects-mmall/zhiban/config.json");
         byte[] bytes = new byte[1024 * 100];
         int read = stream.read(bytes);
         stream.close();
