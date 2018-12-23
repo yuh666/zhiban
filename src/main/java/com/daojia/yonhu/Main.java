@@ -90,6 +90,7 @@ public class Main {
                 Task task = map.get(finalTime);
                 if (task == null) {
                     task = new Task(finalTime);
+                    map.put(finalTime,task);
                 }
                 task.addJob(new ShellJob(cmd));
             }
