@@ -4,10 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
-/**
- * @author yuh
- * @date 2018-12-23 13:10
- **/
+
 public class Task {
     private long executeTime;
     private List<Job> jobs = new ArrayList<>();

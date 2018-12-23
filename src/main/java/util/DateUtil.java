@@ -5,10 +5,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 
-/**
- * @author yuh
- * @date 2018-12-23 13:32
- **/
 public class DateUtil {
 
     private DateUtil(){}

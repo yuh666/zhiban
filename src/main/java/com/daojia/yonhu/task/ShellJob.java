@@ -1,9 +1,6 @@
 package com.daojia.yonhu.task;
 
-/**
- * @author yuh
- * @date 2018-12-23 13:14
- **/
+
 public class ShellJob implements Job {
 
     private String cmd;

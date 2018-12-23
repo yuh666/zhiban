@@ -18,10 +18,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-/**
- * @author yuh
- * @date 2018-12-14 14:20
- **/
 public class Main {
 
 
