@@ -1,8 +1,8 @@
-package com.daojia.yonhu.clazzload;
+package com.daojia.yonhu.classoader;
 
 import java.io.*;
 
-public class ClazzLoader extends ClassLoader {
+public class OptClassLoader extends ClassLoader {
 
     private static String clazzPath = "/opt/zhiban/clazz/%s.class";
 //    private static String clazzPath = "/home/lizx/lizx/kaifa/IdeaProjects-mmall/zhiban/src/test/java/{}.class";
