@@ -60,12 +60,12 @@ public class Main {
 
         Thread.sleep(1000);
         System.out.println();
-        System.out.println("^^^^^^^^^^^^^^^^^");
-        System.out.println("剪不断");
-        System.out.println("理还乱");
-        System.out.println("是需求");
-        System.out.println("别是一般滋味在心头");
-        System.out.println("^^^^^^^^^^^^^^^^^");
+        System.out.println("^^^^^^^^^^^^^^^^^^^");
+        System.out.println("^ 剪不断           ^");
+        System.out.println("^ 理还乱           ^");
+        System.out.println("^ 是需求           ^");
+        System.out.println("^ 别是一般滋味在心头 ^");
+        System.out.println("^^^^^^^^^^^^^^^^^^^");
         System.out.println();
         System.out.println("用户端任务调度平台启动完成  powered by yhd tech team");
 
