@@ -14,7 +14,7 @@ for token in ${DINGDING_TOKENS[@]}
 do
     for (( i=1; i<=2; i++ ))
     do
-        curl 'https://oapi.dingtalk.com/robot/send?access_token='$token -H 'Content-Type: application/json' -d '{
+        curl 'https://oapi.dingtalk.com/robot/send?access_token='$token'' -H 'Content-Type: application/json' -d '{
                 "msgtype": "text",
                 "text": {
                     "content":"'$msg'"
