@@ -16,6 +16,6 @@ public class ShellJob implements Job {
     public void run() throws Exception {
         Process process = Runtime.getRuntime().exec(cmd);
         int state = process.waitFor();
-        System.out.println(state);
+        System.out.println("Shell 执行结果：" + state);
     }
 }

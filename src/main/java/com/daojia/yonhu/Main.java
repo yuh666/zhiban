@@ -58,6 +58,17 @@ public class Main {
         }, 0, 10, TimeUnit.SECONDS);
 
 
+        Thread.sleep(1000);
+        System.out.println();
+        System.out.println("^^^^^^^^^^^^^^^^^");
+        System.out.println("剪不断");
+        System.out.println("理还乱");
+        System.out.println("是需求");
+        System.out.println("别是一般滋味在心头");
+        System.out.println("^^^^^^^^^^^^^^^^^");
+        System.out.println();
+        System.out.println("用户端任务调度平台启动完成  powered by yhd tech team");
+
     }
 
 
@@ -73,7 +84,7 @@ public class Main {
             priorityQueue.clear();
             HashMap<Long, Task> map = new HashMap<>();
             for (String line : lines) {
-                System.out.println(line);
+                System.out.println("扫描任务:" + line);
                 String[] timeAndCmd = line.split("#");
                 String time = timeAndCmd[0];
                 String cmd = timeAndCmd[1];
@@ -86,7 +97,7 @@ public class Main {
                 Task task = map.get(finalTime);
                 if (task == null) {
                     task = new Task(finalTime);
-                    map.put(finalTime,task);
+                    map.put(finalTime, task);
                 }
                 task.addJob(new ShellJob(cmd));
             }
